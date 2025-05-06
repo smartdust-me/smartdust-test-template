@@ -1,0 +1,53 @@
+name: Sample smartdust-cli script
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  run_tests:
+    environment: staging
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        
+      ### INSTALL ADB
+      - run: sudo apt-get update && sudo apt-get install -y android-tools-adb
+      
+      ### SMARTDUST-CLI SETUP  
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '2.6'
+      - run: |
+          gem sources --add https://repository.smartdust.me/repository/ruby/
+        env:
+          GEM_HOME: ${{ runner.temp }}/gems
+          GEM_PATH: ${{ runner.temp }}/gems
+      - run: |
+          sudo gem install smartdust-client
+        env:
+          GEM_HOME: ${{ runner.temp }}/gems
+          GEM_PATH: ${{ runner.temp }}/gems
+          
+      ### CONNECT DEVICE
+      - run: smartdust-client connect
+        env:
+          SD_URL: ${{ secrets.SD_URL }}
+          SD_TOKEN: ${{ secrets.SD_TOKEN }}
+
+      ### CHECK DEVICES 
+      - run: adb devices
+      
+      ### RUN TESTS  
+      - run: ./test.sh
+
+      ### DISCONNECT DEVICE
+      - run: smartdust-client disconnect --all
+        env:
+          SD_URL: ${{ secrets.SD_URL }}
+          SD_TOKEN: ${{ secrets.SD_TOKEN }}
+
+      ### CHECK DEVICES AGAIN
+      - run: adb devices
